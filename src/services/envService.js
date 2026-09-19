@@ -75,6 +75,13 @@ class EnvService {
             return console.log('\n🎉 Environment is fully configured and deployment-ready!');
         }
 
+        if (!process.stdin.isTTY) {
+            // 没有交互终端时不要卡住启动。
+            // 用户层面：双击启动或后台运行时，网页仍能打开，不会停在「是否安装 Git」。
+            console.warn('\n⚠️ Missing Node.js or Git. Skipping interactive install because this is not a terminal.');
+            return;
+        }
+
         const choices = [];
         if (!nodeVer) choices.push({ name: 'Node.js (LTS)', value: 'node', checked: true });
         if (!gitVer) choices.push({ name: 'Git Version Control', value: 'git', checked: true });

@@ -1,54 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeCraft - AI Software Architect</title>
+    <title>CodeCraft</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --bg: #0f172a;
-            --panel: #1e293b;
-            --text: #f8fafc;
-            --primary: #3b82f6;
-            --success: #10b981;
-            --danger: #ef4444;
+            --navy: #10233a;
+            --panel: #17324f;
+            --ink: #e7f1f8;
+            --muted: #8fb0c4;
+            --line: #2c5470;
+            --cyan: #6ec8dc;
+            --brass: #c9922a;
+            --danger: #d4655a;
+            --ok: #6fbf8a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
             margin: 0;
-            padding: 20px;
+            background:
+                linear-gradient(180deg, rgba(110, 200, 220, 0.05), transparent 28%),
+                repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(110, 200, 220, 0.06) 32px),
+                repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(110, 200, 220, 0.06) 32px),
+                var(--navy);
+            color: var(--ink);
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--cyan);
+            outline-offset: 2px;
+        }
+
+        .view {
+            min-height: 100%;
+            padding: 28px;
+        }
+
+        .view[hidden] {
+            display: none;
+        }
+
+        .masthead {
             display: flex;
-            height: 100vh;
-            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .wordmark {
+            font-family: "Source Serif 4", Georgia, serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.03em;
+        }
+
+        .lede {
+            margin: 6px 0 0;
+            color: var(--muted);
+            max-width: 42rem;
+        }
+
+        .studio-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 380px) 1fr;
             gap: 20px;
+            align-items: start;
         }
 
-        h2,
-        h3 {
-            margin-top: 0;
-            color: #cbd5e1;
-        }
-
-        .control-panel {
-            flex: 1;
-            background: var(--panel);
+        .panel {
+            background: rgba(23, 50, 79, 0.92);
+            border: 1px solid var(--line);
             padding: 20px;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            overflow-y: auto;
         }
 
         label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #94a3b8;
+            display: block;
+            color: var(--muted);
+            font-size: 0.92rem;
+            font-weight: 500;
+            margin-bottom: 6px;
         }
 
         input[type="text"],
@@ -56,566 +115,287 @@
         textarea,
         select {
             width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: white;
-            margin-top: 5px;
-            box-sizing: border-box;
-            font-family: inherit;
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: #64748b;
-            font-style: italic;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            background: #0f2134;
+            color: var(--ink);
+            margin-bottom: 14px;
         }
 
         textarea {
+            min-height: 120px;
             resize: vertical;
-            min-height: 100px;
         }
 
-        .checkbox-group {
+        .option {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: #0f172a;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
             gap: 8px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            color: var(--ink);
+        }
+
+        .option small {
+            display: block;
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-top: 2px;
+        }
+
+        .btn-brass,
+        .btn-cyan,
+        .btn-ghost {
+            border: 0;
             cursor: pointer;
-            color: #cbd5e1;
-            font-size: 0.9rem;
+            padding: 12px 16px;
+            font-weight: 600;
         }
 
-        .checkbox-subtext {
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-left: 28px;
-            margin-top: -5px;
+        .btn-brass {
+            width: 100%;
+            background: var(--brass);
+            color: #1a1406;
+            margin-top: 8px;
         }
 
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        button:hover {
-            filter: brightness(1.1);
-        }
-
-        button:disabled {
-            background: #475569;
-            color: #94a3b8;
+        .btn-brass:disabled,
+        .btn-cyan:disabled {
+            opacity: 0.55;
             cursor: not-allowed;
         }
 
-        .btn-secondary {
-            background: #475569;
-            padding: 10px;
+        .btn-cyan {
+            background: var(--cyan);
+            color: #10233a;
         }
 
-        .workspace {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .btn-ghost {
+            background: transparent;
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
         }
 
-        .terminal {
-            flex: 1;
-            background: #000;
-            color: #00ff00;
-            font-family: 'Consolas', monospace;
-            padding: 15px;
-            border-radius: 12px;
-            overflow-y: auto;
+        .plotter {
+            min-height: 420px;
+            max-height: calc(100vh - 180px);
+            overflow: auto;
+            background: #07131f;
+            color: var(--cyan);
+            font-family: "IBM Plex Mono", Consolas, monospace;
+            font-size: 0.86rem;
+            line-height: 1.45;
+            padding: 16px;
             white-space: pre-wrap;
-            font-size: 0.9rem;
-            border: 1px solid #334155;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--line);
         }
 
-        .chat-box {
-            background: var(--panel);
-            padding: 15px;
-            border-radius: 12px;
+        .projects h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 10px;
+        }
+
+        .project-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .project-list button {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink);
+            padding: 10px 0;
+            cursor: pointer;
+        }
+
+        .project-list button:hover {
+            color: var(--cyan);
+        }
+
+        .empty {
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .workspace-bar {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
             align-items: center;
-            border: 2px dashed #334155;
-            transition: 0.3s;
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
-        .chat-box.unlocked {
-            border-color: #8b5cf6;
+        .workspace-bar h1 {
+            font-family: "Source Serif 4", Georgia, serif;
+            font-size: 1.5rem;
+            margin: 0;
         }
 
-        .chat-box input {
+        .bar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .files {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin: 0 0 12px;
+        }
+
+        .edit-bar {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .edit-bar input {
             flex: 1;
             margin: 0;
         }
 
-        .chat-box button {
-            background: #8b5cf6;
+        .pulse {
+            animation: pulse 1.4s ease-in-out infinite;
         }
 
-        /* Reviewer Modal */
+        @keyframes pulse {
+            50% {
+                opacity: 0.65;
+            }
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
+            inset: 0;
+            background: rgba(7, 19, 31, 0.72);
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 20;
         }
 
         .modal {
             background: var(--panel);
-            padding: 25px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            border: 1px solid #475569;
-        }
-
-        .modal h3 {
-            color: #f59e0b;
-            margin-bottom: 10px;
-        }
-
-        .modal p {
-            color: #e2e8f0;
-            line-height: 1.5;
-            font-size: 0.95rem;
+            border: 1px solid var(--line);
+            padding: 22px;
+            width: min(480px, 92vw);
         }
 
         .option-btn {
-            background: #334155;
             display: block;
             width: 100%;
             text-align: left;
-            margin-bottom: 10px;
-            border: 1px solid #475569;
-            padding: 12px;
-            color: white;
-            transition: 0.2s;
+            margin-bottom: 8px;
+            background: #0f2134;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            padding: 10px;
+            cursor: pointer;
         }
 
-        .option-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .pulse {
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
+        @media (max-width: 860px) {
+            .studio-grid,
+            .workspace-bar,
+            .edit-bar {
+                display: block;
             }
 
-            50% {
-                opacity: 0.5;
+            .bar-actions,
+            .edit-bar button {
+                width: 100%;
+                margin-top: 8px;
             }
+        }
 
-            100% {
-                opacity: 1;
+        @media (prefers-reduced-motion: reduce) {
+            .pulse {
+                animation: none;
             }
         }
     </style>
 </head>
 
 <body>
-
-    <div class="control-panel">
-        <h2>🛠️ CodeCraft Studio</h2>
-
-        <div>
-            <label>Project Folder (Optional)</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="outputDir" placeholder="Leave blank to let AI decide...">
-                <button class="btn-secondary" onclick="loadExistingProject()"
-                    title="Load a previous project to modify it">📂 Load</button>
-                <button id="runBtn" onclick="runLoadedProject()"
-                    style="background: #10b981; display: none; padding: 10px;" title="Start this project in browser">▶️
-                    Run</button>
-            </div>
-        </div>
-
-        <div>
-            <label>DeepSeek API Key</label>
-            <input type="password" id="apiKey" placeholder="Paste your API key here (sk-...)">
-        </div>
-
-        <div>
-            <label>What do you want to build?</label>
-            <textarea id="description"
-                placeholder="E.g., A beautiful Todo List application with a dark mode toggle..."></textarea>
-        </div>
-
-        <div>
-            <label>Output Language</label>
-            <select id="lang">
-                <option value="en">English</option>
-                <option value="zh">繁體中文</option>
-            </select>
-        </div>
-
-        <div class="checkbox-group">
+    <!-- 工作台：填写需求并开始生成。用户层面：从一句话走到可下载、可继续改的项目。 -->
+    <section class="view" id="studio">
+        <header class="masthead">
             <div>
-                <label class="checkbox-label"><input type="checkbox" id="install" checked> ✨ Auto-Setup
-                    Environment</label>
-                <div class="checkbox-subtext">(Recommended) Automatically downloads necessary files to make your app
-                    run.</div>
+                <h1 class="wordmark">CodeCraft</h1>
+                <p class="lede">用一句话描述应用。生成结束后会进入这个项目的修改页；以前做过的项目也可以从下面打开。</p>
             </div>
+        </header>
+        <div class="studio-grid">
             <div>
-                <label class="checkbox-label"><input type="checkbox" id="test" checked> 🛡️ AI Auto-Fix &
-                    Testing</label>
-                <div class="checkbox-subtext">(Recommended) AI will test your app and fix bugs automatically.</div>
+                <form class="panel" id="generateForm">
+                    <label for="apiKey">DeepSeek API Key</label>
+                    <input type="password" id="apiKey" autocomplete="off" placeholder="sk-...">
+
+                    <label for="description">想做什么</label>
+                    <textarea id="description" placeholder="例如：带深色模式的待办清单"></textarea>
+
+                    <label for="outputDir">项目文件夹（可空，交给系统起名）</label>
+                    <input type="text" id="outputDir" placeholder="todo-list">
+
+                    <label for="lang">生成项目的界面语言</label>
+                    <select id="lang">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                    </select>
+
+                    <label class="option"><input type="checkbox" id="install" checked> 自动安装依赖
+                        <small>生成后执行 npm install，方便马上运行</small>
+                    </label>
+                    <label class="option"><input type="checkbox" id="test" checked> 自动编译检查
+                        <small>若项目有 build 脚本，会试着编译并提示失败原因</small>
+                    </label>
+                    <label class="option"><input type="checkbox" id="force"> 覆盖已有文件夹
+                        <small>只在你确实要重做同名项目时勾选</small>
+                    </label>
+
+                    <button type="submit" class="btn-brass" id="generateBtn">开始生成</button>
+                </form>
+                <div class="panel projects" style="margin-top: 16px;">
+                    <h2>以前的项目</h2>
+                    <p class="empty" id="projectEmpty">还没有可打开的项目。生成一次之后会出现在这里。</p>
+                    <ul class="project-list" id="projectList"></ul>
+                </div>
             </div>
+            <div class="plotter" id="studioLog">等待需求。生成过程会写在这张图纸上。</div>
+        </div>
+    </section>
+
+    <!-- 修改页：对着刚生成或以前打开的项目继续改。用户层面：生成结束后会进到这里，也能从列表拿回旧项目。 -->
+    <section class="view" id="workspace" hidden>
+        <div class="workspace-bar">
             <div>
-                <label class="checkbox-label"><input type="checkbox" id="force"> ⚠️ Allow Overwriting Files</label>
-                <div class="checkbox-subtext">Check this only if you want to replace existing code.</div>
+                <h1 id="workspaceTitle">修改项目</h1>
+                <p class="files" id="workspaceFiles"></p>
+            </div>
+            <div class="bar-actions">
+                <button type="button" class="btn-ghost" id="backBtn">返回工作台</button>
+                <button type="button" class="btn-cyan" id="runBtn">在本机运行</button>
             </div>
         </div>
-
-        <button id="generateBtn" onclick="generateProject()">🚀 Generate New Project</button>
-
-        <hr style="border-color: #334155; margin: 15px 0;">
-        <button id="publishBtn" onclick="publishToWeb()" style="background: #10b981; margin-top: 5px;">
-            🌐 One-Click Publish to Web
-        </button>
-        <div id="publishUrl"
-            style="margin-top: 10px; color: #06b6d4; font-weight: bold; font-size: 0.9rem; word-break: break-all;">
+        <div class="plotter" id="workspaceLog"></div>
+        <div class="edit-bar">
+            <input type="text" id="patchMsg" placeholder="例如：加一个购物车，或把按钮改成绿色">
+            <button type="button" class="btn-cyan" id="patchBtn">应用修改</button>
         </div>
-    </div>
-
-    <div class="workspace">
-        <div class="terminal" id="terminal">Welcome to CodeCraft. Enter your requirements to start, or load an existing
-            project to edit.\n</div>
-
-        <div class="chat-box" id="patchBox">
-            <input type="text" id="patchMsg"
-                placeholder="🔒 Please generate or load a project first to unlock AI Editing..." disabled>
-            <button id="patchBtn" onclick="sendPatch()" disabled>✨ AI Magic Edit</button>
-        </div>
-    </div>
+    </section>
 
     <div class="modal-overlay" id="reviewerModal">
         <div class="modal">
-            <h3>⚠️ Action Required</h3>
-            <p id="reviewerMsg">The system encountered an unresolvable issue during testing.</p>
+            <h3>需要你选一下</h3>
+            <p id="reviewerMsg"></p>
             <div id="reviewerOptions"></div>
-            <button onclick="closeModal()" style="margin-top: 15px; background: #64748b;">Ignore & Continue</button>
+            <button type="button" class="btn-ghost" id="ignoreReviewer">忽略并继续</button>
         </div>
     </div>
 
-    <script>
-        const terminal = document.getElementById('terminal');
-        const generateBtn = document.getElementById('generateBtn');
-        const patchMsg = document.getElementById('patchMsg');
-        const patchBtn = document.getElementById('patchBtn');
-        const patchBox = document.getElementById('patchBox');
-
-        let animationInterval = null;
-        let lastLoggedChunk = ""; // 用於防止後端瘋狂噴出重複日誌的去重機制
-
-        // 核心打印引擎：支援去重、ANSI 顏色轉換、以及動態動畫替換
-        function appendLog(text) {
-            // [UI 防彈去重] 如果後端發送了一模一樣的字串，直接丟棄！
-            if (text === lastLoggedChunk && text.trim().length > 5) return;
-            lastLoggedChunk = text;
-
-            // [徹底清除亂碼] 精準解析並過濾所有 \x1b 隱藏字元
-            let html = text
-                .replace(/\x1b\[31m/g, '<span style="color:#ef4444;">')
-                .replace(/\x1b\[32m/g, '<span style="color:#10b981;">')
-                .replace(/\x1b\[33m/g, '<span style="color:#f59e0b;">')
-                .replace(/\x1b\[35m/g, '<span style="color:#d946ef;">')
-                .replace(/\x1b\[36m/g, '<span style="color:#06b6d4;">')
-                .replace(/\x1b\[0m/g, '</span>')
-                .replace(/\x1b\[[0-9;]*m/g, '') // 捕捉任何殘留的顏色代碼
-                .replace(/\x1b/g, ''); // 徹底殺死導致 '' 的 ESC 字元
-
-            // [動畫觸發器] 偵測到開始寫檔案
-            if (html.includes('⏳') && html.includes('...')) {
-                // 將靜態的 ... 替換為我們專屬的動畫 span
-                html = html.replace('...', '<span id="loading-dots" style="font-weight:bold; letter-spacing:1px; color:#f59e0b;">.</span>');
-                startDotsAnimation();
-            }
-
-            // [動畫終結器] 偵測到寫檔完成或失敗
-            if (html.includes('✅ Done') || html.includes('❌ Failed')) {
-                stopDotsAnimation();
-                const dotsSpan = document.getElementById('loading-dots');
-                if (dotsSpan) {
-                    dotsSpan.outerHTML = '...'; // 將動畫凝固回靜態文字
-                }
-            }
-
-            html = html.replace(/\n/g, '<br>');
-            terminal.innerHTML += html;
-            terminal.scrollTop = terminal.scrollHeight;
-        }
-
-        function startDotsAnimation() {
-            stopDotsAnimation();
-            let count = 1;
-            animationInterval = setInterval(() => {
-                const el = document.getElementById('loading-dots');
-                if (el) {
-                    count = (count % 3) + 1;
-                    el.innerText = '.'.repeat(count);
-                } else {
-                    stopDotsAnimation(); // 元素被覆蓋或消失時自動停止
-                }
-            }, 300);
-        }
-
-        function stopDotsAnimation() {
-            if (animationInterval) {
-                clearInterval(animationInterval);
-                animationInterval = null;
-            }
-        }
-
-        // [核心升級] 無緩衝即時串流讀取器 (Unbuffered Live Reader)
-        async function readStream(response) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let actionBuffer = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) {
-                    stopDotsAnimation();
-                    break;
-                }
-
-                // 放棄換行等待，資料一來立刻解碼
-                const chunk = decoder.decode(value, { stream: true });
-                actionBuffer += chunk;
-
-                // 攔截並處理需要使用者互動的 Modal JSON
-                if (actionBuffer.includes('___REVIEWER_ACTION___:')) {
-                    const parts = actionBuffer.split('___REVIEWER_ACTION___:');
-                    if (parts[0]) appendLog(parts[0]);
-
-                    try {
-                        // 嘗試抓取 JSON 格式
-                        const jsonStr = parts[1].split('\n')[0].trim();
-                        const reviewData = JSON.parse(jsonStr);
-                        showReviewerModal(reviewData);
-                        actionBuffer = ""; // 清空 Buffer
-                    } catch (e) {
-                        // 如果 JSON 還沒傳完，等下一個 Chunk
-                        continue;
-                    }
-                } else {
-                    // 一般日誌，直接無延遲推上 UI！
-                    appendLog(chunk);
-                    actionBuffer = "";
-                }
-            }
-        }
-
-        // 解鎖 AI 修改區的 UI 特效
-        function unlockPatching(projectName) {
-            patchMsg.disabled = false;
-            patchBtn.disabled = false;
-            patchBox.classList.add('unlocked');
-            patchMsg.placeholder = `💬 Tell AI what to change in [${projectName}] (e.g. Add a shopping cart)...`;
-        }
-
-        function loadExistingProject() {
-            const folderName = document.getElementById('outputDir').value.trim();
-            if (!folderName) {
-                alert("Please enter the exact Project Folder name you want to load.");
-                return;
-            }
-            appendLog(`\n<span style="color:#06b6d4;">📂 Scanning existing project [${folderName}]... Context loaded into AI memory.</span>\n`);
-            unlockPatching(folderName);
-
-            const runBtn = document.getElementById('runBtn');
-            if (runBtn) runBtn.style.display = 'block';
-        }
-
-        async function runLoadedProject() {
-            const projectDir = document.getElementById('outputDir').value.trim();
-            if (!projectDir) return;
-
-            const runBtn = document.getElementById('runBtn');
-            runBtn.disabled = true;
-            runBtn.innerText = "⏳...";
-
-            appendLog(`\n<span style="color:#06b6d4;">🚀 Waking up project [${projectDir}]...</span>\n`);
-            try {
-                const response = await fetch('/api/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectDir })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    appendLog(`<span style="color:#10b981;">✅ Project boot initiated! A new green terminal window should appear.</span>\n`);
-                } else {
-                    appendLog(`<span style="color:#ef4444;">❌ Failed to start: ${data.error}</span>\n`);
-                }
-            } catch (e) {
-                appendLog(`<span style="color:#ef4444;">❌ Connection error: ${e.message}</span>\n`);
-            } finally {
-                runBtn.disabled = false;
-                runBtn.innerText = "▶️ Run";
-            }
-        }
-
-        async function generateProject() {
-            const description = document.getElementById('description').value;
-            const apiKey = document.getElementById('apiKey').value;
-            const outputDir = document.getElementById('outputDir').value;
-
-            if (!description) return alert('Please tell the AI what you want to build.');
-            if (!apiKey) return alert('API Key is required to launch the AI.');
-
-            generateBtn.disabled = true;
-            generateBtn.classList.add('pulse');
-            terminal.innerHTML = '';
-            appendLog("🚀 Initializing AI Architect...\n");
-
-            try {
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        description,
-                        outputDir: outputDir,
-                        apiKey: apiKey,
-                        lang: document.getElementById('lang').value,
-                        install: document.getElementById('install').checked,
-                        test: document.getElementById('test').checked,
-                        force: document.getElementById('force').checked
-                    })
-                });
-
-                await readStream(response);
-                unlockPatching(outputDir || "your project");
-
-            } catch (error) {
-                appendLog(`\n<span style="color:#ef4444;">❌ Connection Error: ${error.message}</span>`);
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.classList.remove('pulse');
-            }
-        }
-
-        async function sendPatch() {
-            const message = patchMsg.value;
-            const apiKey = document.getElementById('apiKey').value;
-            const projectDir = document.getElementById('outputDir').value;
-
-            if (!message) return alert('Please tell the AI what you want to change.');
-            if (!projectDir) return alert('Please enter the Project Folder name you want to modify.');
-
-            patchBtn.disabled = true;
-            patchMsg.value = '';
-            appendLog(`\n\n<span style="color:#d946ef;">✨ Submitting AI Edit Request: "${message}"...</span>\n`);
-
-            try {
-                const response = await fetch('/api/modify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectDir, message, apiKey })
-                });
-                await readStream(response);
-            } catch (error) {
-                appendLog(`\n<span style="color:#ef4444;">❌ Patch Failed: ${error.message}</span>`);
-            } finally {
-                patchBtn.disabled = false;
-            }
-        }
-
-        function showReviewerModal(data) {
-            document.getElementById('reviewerMsg').innerText = data.message || "An issue needs your decision.";
-            const optionsDiv = document.getElementById('reviewerOptions');
-            optionsDiv.innerHTML = '';
-
-            if (data.options && Array.isArray(data.options)) {
-                data.options.forEach((opt, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.innerText = `${String.fromCharCode(65 + idx)}. ${opt}`;
-                    btn.onclick = () => {
-                        appendLog(`\n<span style="color:#06b6d4;">🧑‍💻 User selected: ${opt}</span>\n`);
-                        patchMsg.value = `I encountered an error. Please apply this solution: ${opt}`;
-                        closeModal();
-                        sendPatch();
-                    };
-                    optionsDiv.appendChild(btn);
-                });
-            }
-            document.getElementById('reviewerModal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('reviewerModal').style.display = 'none';
-        }
-
-        async function publishToWeb() {
-            const publishBtn = document.getElementById('publishBtn');
-            const publishUrl = document.getElementById('publishUrl');
-            const projectDir = document.getElementById('outputDir').value;
-
-            if (!projectDir) return alert('Please load or generate a project first!');
-
-            publishBtn.disabled = true;
-            publishBtn.innerText = "⏳ Publishing...";
-            appendLog(`\n<span style="color:#06b6d4;">🌐 Initiating Cloud Deployment for [${projectDir}]...</span>\n`);
-
-            try {
-                const response = await fetch('/api/publish', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectDir })
-                });
-                const data = await response.json();
-
-                if (data.url) {
-                    publishUrl.innerHTML = `✅ Live URL: <a href="${data.url}" target="_blank" style="color: #06b6d4;">${data.url}</a><br><span style="font-size: 0.75rem; color:#94a3b8;">(Share this link with anyone!)</span>`;
-                    appendLog(`<span style="color:#10b981;">✅ Deployment Successful! URL: ${data.url}</span>\n`);
-                } else {
-                    appendLog(`<span style="color:#ef4444;">❌ Publishing failed: ${data.error}</span>\n`);
-                }
-            } catch (err) {
-                appendLog(`<span style="color:#ef4444;">❌ Connection error: ${err.message}</span>\n`);
-            } finally {
-                publishBtn.innerText = "🌐 One-Click Publish to Web";
-                publishBtn.disabled = false;
-            }
-        }
-    </script>
+    <script src="/app.js"></script>
 </body>
 
 </html>
