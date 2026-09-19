@@ -1,42 +1,68 @@
-# 🚀 CodeCraft: Agentic Workflow IDE
+# CodeCraft
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Node.js](https://img.shields.io/badge/Node.js-LTS-green.svg)
-![Architecture](https://img.shields.io/badge/Architecture-SOA%20%7C%20Agentic-orange.svg)
-![Status](https://img.shields.io/badge/Status-Deployment%20Ready-brightgreen.svg)
+用自然语言描述你想做的应用，CodeCraft 会生成一套可运行的小型 Web 项目（Node.js + 静态前端），并在网页里继续改需求。
 
-CodeCraft is a sophisticated, AI-driven development environment and project generation tool designed to bridge the gap between natural language requirements and enterprise-grade software architecture. Powered by Large Language Models (LLMs) and advanced Abstract Syntax Tree (AST) manipulation, it acts as your autonomous engineering team.
+当前适合在本机使用：需要 Node.js 和 DeepSeek API Key。不要把服务直接暴露到公网。
 
-## ✨ Core Innovations (Research Elements)
+## 它做什么
 
-- **🤖 Multi-Agent Collaboration (Agentic Workflow)**: Utilizes a specialized hierarchy of AI Agents (Architect, Coder, and QA) to plan, execute, and self-heal codebases autonomously.
-- **🌲 AST-Based Smart Patching**: Resolves LLM context-window limitations by extracting method skeletons for large files, allowing precise code grafting without overwriting entire modules.
-- **🛡️ Robust Security & Self-Healing**: Features Strict Path Traversal Mitigation to prevent malicious file overrides, coupled with an automated QA loop (`npm run build`) that triggers self-correction upon failure.
-- **⚡ Zero-Configuration Deployment**: Bootstraps the entire environment seamlessly across operating systems via an unattended installation script.
+1. **Architect**：根据你的描述列出要生成的文件和各自职责  
+2. **Coder**：按文件写出代码  
+3. **QA**：安装依赖；若有 `build` 脚本会尝试编译，也可以在网页里用自然语言打补丁  
 
-## 🏗️ System Architecture (SOA)
+生成过程会把进度流式打到网页终端。
 
-The system is refactored using the **Service-Oriented Architecture (SOA)**, strictly adhering to the Single Responsibility Principle (SRP):
-- `bin/cli.js`: The lightweight command dispatcher.
-- `src/services/aiService.js`: Orchestrates the DeepSeek Agentic Workflow and enforces English-First Dynamic Contextual Constraints.
-- `src/services/fileService.js`: Handles infrastructure IO, Path Traversal Defense, and AST parsing.
-- `src/server.js` & `public/index.html`: Provides a real-time, terminal-streamed Web GUI with interactive QA resolution modals.
+## 环境要求
 
-## 🚀 Quick Start (Zero-Config)
+- Node.js LTS
+- DeepSeek API Key（只应放在本机，不要提交进 Git）
 
-CodeCraft is designed to be **Deployment Ready**. No manual setup of Node.js or `npm` is required if you are on Windows.
+## 启动
 
-1. Clone or download this repository.
-2. Double-click the **`OpenCodeCraft.bat`** file.
-3. The script will automatically:
-   - Detect and install Node.js (via `winget`) if missing.
-   - Resolve and install all `npm` dependencies.
-   - Boot up the CodeCraft Web GUI.
-4. Open the provided `localhost` URL in your browser, enter your API Key, and start crafting!
+**Windows**
 
-## 🌐 English-First Policy
+双击 `OpenCodeCraft.bat`，或：
 
-To maintain professional software engineering standards, CodeCraft enforces an **English-First** policy. All AI-generated code comments, variable naming conventions, database schemas, and User Interfaces are generated in professional-grade English by default, ensuring immediate enterprise readiness.
+```bash
+npm install
+npm start
+```
 
----
-*Developed as part of the ITP4913M Final Year Project. Designed for Excellence.*
+浏览器打开 [http://localhost:8080](http://localhost:8080)。
+
+**macOS / Linux**
+
+```bash
+chmod +x OpenCodeCraft.sh
+./OpenCodeCraft.sh
+```
+
+也可以用命令行：
+
+```bash
+node bin/cli.js ai-create-pro "A todo list with dark mode" -k YOUR_API_KEY
+```
+
+## 使用方式
+
+1. 填入 API Key 和需求描述  
+2. 点 Generate，等待生成结束  
+3. 用 AI Magic Edit 继续改项目  
+4. 生成目录在当前工作目录下；Windows 可用项目里的 `Start_Project.bat` 在本机启动  
+
+## 仓库结构
+
+```
+bin/cli.js              命令行入口
+src/server.js           Web 服务
+src/services/           模型调用、文件与环境
+src/core/ast.js         大文件骨架压缩与语法检查
+src/public/index.html   网页界面
+docs/CODING_STANDARDS.md  代码规范
+```
+
+编码约定见 [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md)。
+
+## 许可
+
+MIT。详见 [LICENSE](LICENSE)。

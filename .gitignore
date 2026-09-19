@@ -138,7 +138,13 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# 忽略所有在根目录生成的测试项目（假设 AI 生成的项目名字不固定，这比较难完全匹配）
-# 但你可以把你常用的测试目录名写进去
-/a-* /test-project-*
-/ai-project-*".idea/" 
+# Generated projects created next to this repo
+/test-project-*
+/ai-project-*
+
+# JetBrains
+.idea/
+
+# Local Cursor rules and agent skills (do not publish)
+.cursor/
+.agents/ 

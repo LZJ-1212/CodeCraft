@@ -16,9 +16,8 @@ function getLangInstruction(lang) {
 
 class AIService {
     /**
-     * 【A級架構核心】API 熔斷與指數退避重試機制 (Exponential Backoff Retry)
-     * Why: 外部 API 極度脆弱，網路波動或限流會導致系統崩潰。
-     * How: 封裝所有 Axios 請求，失敗時按 1s, 2s, 4s 等比延長等待時間後重試，保障系統強健度 (Robustness)。
+     * 调用大模型失败时按 1s、2s、4s 自动再试。
+     * 用户层面：网络抖动或接口限流时，不必重新点「生成」，这次任务会自己接着跑。
      */
     static async _callApiWithRetry(apiFunc, maxRetries = 3, logger = null) {
         const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -77,10 +76,9 @@ class AIService {
         if (logger) logger(logMsg + '\n'); else console.log(logMsg);
 
         /**
-                 * [A級 Prompt 優化]
-                 * 增加 PACKAGE.JSON MANDATORY 規則，強制 AI 聲明依賴。
-                 * 這是解決 "Cannot find module" 錯誤的根本之道。
-                 */
+         * 要求蓝图里必须包含 package.json 和依赖列表。
+         * 用户层面：生成后执行安装时不容易出现「找不到模块」而整站起不来。
+         */
         const architectPrompt = `You are an elite Enterprise Software Architect. Design a PRODUCTION-READY, Deployment-Grade Full-Stack architecture based on the user's description.
 CRITICAL Requirements to maximize token usage and quality:
 1. REAL IMAGES CAPABILITY: You MUST include a backend route \`backend/routes/images.js\` and link it to \`server.js\` as \`/api/get-image\`. 
@@ -112,7 +110,8 @@ CRITICAL Requirements to maximize token usage and quality:
      * @param {function} logger - 依賴注入的日誌回調函數
      */
     static async executeGenerationPipeline(targetDir, blueprint, description, apiKey, lang, logger = null) {
-        // 【A級架構核心】內部日誌分發器，實現業務邏輯與終端輸出的完美解耦
+        // 把管线日志交给网页或命令行。
+        // 用户层面：生成过程中能看到「正在写哪个文件」，而不是干等。
         const log = (msg, exactOutput = false) => {
             const formattedMsg = exactOutput ? msg : msg + '\n';
             if (logger) logger(formattedMsg);
@@ -264,9 +263,9 @@ CRITICAL Requirements to maximize token usage and quality:
     }
 
     /**
-         * 高保真思維鏈工程師代理 (CoT Coder Agent - A-Grade Edition)
-         * @param {function} logger - 依賴注入的日誌回調函數
-         */
+     * 按蓝图为单个文件写出完整代码。
+     * 用户层面：用户描述里的页面、接口会变成可以打开的源文件，而不是空目录。
+     */
     static async _callCoder(filePath, fileRole, blueprint, description, apiKey, lang, rawMemory = "", logger = null) {
         let formattedMemoryPrompt = "";
         if (rawMemory && rawMemory.length > 5) {

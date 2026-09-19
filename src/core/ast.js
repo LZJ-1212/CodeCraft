@@ -3,9 +3,8 @@ const traverse = require('@babel/traverse').default;
 const generator = require('@babel/generator').default;
 
 /**
- * Abstract Syntax Tree (AST) Core Module
- * [Research Element] This module solves the LLM Context Window exhaustion problem 
- * by dynamically compressing large source files into method skeletons.
+ * 把大文件压成函数签名骨架，再交给模型。
+ * 用户层面：项目变大以后，修改和补丁仍然能跑完，而不会因为上下文塞满而中途失败。
  */
 class ASTProcessor {
     /**

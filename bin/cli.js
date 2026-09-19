@@ -30,7 +30,7 @@ program
       // 這部分的複雜邏輯現在被封裝在 Service 中，保持 CLI 入口簡潔
       await AIService.executeGenerationPipeline(targetDir, blueprint, description, apiKey, options.lang);
 
-      console.log(`\n🎉 Project ${projectName} is successfully crafted with Grade A standards.`);
+      console.log(`\nProject ${projectName} is ready.`);
       process.exit(0);
     } catch (error) {
       console.error(`\n❌ Fatal Error: ${error.message}`);

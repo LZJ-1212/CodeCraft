@@ -10,7 +10,8 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- [實機演示核心：圖片自動獲取邏輯] ---
+// 按关键词把图片请求转到免费图库。
+// 用户层面：生成出来的页面能显示真实图片，而不是裂图或占位块。
 app.get('/api/get-image', (req, res) => {
   const { q } = req.query;
   // 如果 AI 沒給關鍵字，就給一張隨機風景圖
@@ -30,11 +31,8 @@ app.post('/api/generate', async (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  /**
-   * [A級架構核心] Request-Scoped Logger (請求級別日誌器)
-   * Why: 避免多用戶併發(Concurrency)污染全域 stdout，實現無狀態(Stateless) API。
-   * How: 透過閉包(Closure)封裝 res.write，作為依賴注入傳遞給底層 AIService。
-   */
+  // 把这次生成的日志只写回当前这次请求。
+  // 用户层面：网页终端里看到的是自己这次任务的进度，不会和别人的输出混在一起。
   const streamLogger = (message) => {
     process.stdout.write(message);
     res.write(message);
