@@ -26,15 +26,18 @@ const workspace = createWorkspace();
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 接口只接受本机请求。
-// 用户层面：同一网络里的别人打不开你的工作室，也用不了你放在 .env 里的密钥。
-app.use('/api', (req, res, next) => {
+function requireLoopback(req, res, next) {
     const addr = req.socket && req.socket.remoteAddress;
     if (!isLoopbackAddress(addr)) {
         return res.status(403).json({ error: '只允许本机访问 CodeCraft' });
     }
     next();
-});
+}
+
+// 接口和预览都只接受本机请求。
+// 用户层面：同一网络里的别人打不开你的工作室，也看不到生成出来的页面。
+app.use('/api', requireLoopback);
+app.use('/preview', requireLoopback);
 
 // 优先用服务端密钥，没有时才用页面上填的。
 // 用户层面：配过 .env 就不必把 Key 发到请求里。
@@ -118,7 +121,8 @@ app.get('/api/projects/:name', async (req, res) => {
             name: details.name,
             files: details.files,
             handoffs: details.handoffs || [],
-            job: details.job || null
+            job: details.job || null,
+            previewPath: details.previewPath || ''
         });
     } catch (err) {
         res.status(404).json({ error: err.message });
@@ -392,6 +396,27 @@ app.post('/api/modify', async (req, res) => {
         if (projectName) streamLogger(encodeProjectReady({ name: projectName, ok: false }));
     } finally {
         res.end();
+    }
+});
+
+// 在修改页里静态预览生成出来的前端，不启动它的 Node 服务。
+// 用户层面：生成完能马上看到页面；列表、保存等接口仍需本机运行才有数据。
+app.use('/preview/:name', async (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    try {
+        const relative = req.path === '/' ? '' : String(req.path || '').replace(/^\/+/, '');
+        const asset = await workspace.resolvePreviewAsset(req.params.name, relative);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Cache-Control', 'no-store');
+        if (asset.injectBase) {
+            const html = await fs.promises.readFile(asset.filePath, 'utf8');
+            res.type('html').send(workspace.injectPreviewBase(html, req.params.name));
+            return;
+        }
+        res.sendFile(asset.filePath);
+    } catch (err) {
+        const missing = /找不到/.test(err.message);
+        res.status(missing ? 404 : 400).type('text').send(err.message || '无法预览');
     }
 });
 

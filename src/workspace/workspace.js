@@ -9,6 +9,48 @@ const SKIP_CWD_DIRS = new Set([
     '.git', '.agents', '.cursor', '.idea', '.vscode'
 ]);
 
+const PREVIEW_TYPES = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.txt': 'text/plain; charset=utf-8'
+};
+
+const PREVIEW_BLOCKED_DIRS = new Set(['node_modules', '.git', '.codecraft', 'backend', 'server']);
+const PREVIEW_BLOCKED_FILES = new Set([
+    '.env', 'package.json', 'package-lock.json', 'server.js',
+    'start_project.bat', 'start_project.sh'
+]);
+
+function previewError(message) {
+    const error = new Error(message);
+    error.code = 'PREVIEW';
+    return error;
+}
+
+// 给预览页补上根路径，让相对引用的样式和脚本能加载。
+// 用户层面：修改页里的预览看起来像真的网站，而不是缺样式的白页。
+function injectPreviewBase(html, projectName) {
+    const name = encodeURIComponent(String(projectName || '').trim());
+    const base = `<base href="/preview/${name}/">`;
+    const source = String(html || '');
+    if (/<base\s/i.test(source)) return source;
+    if (/<head[^>]*>/i.test(source)) {
+        return source.replace(/<head[^>]*>/i, (open) => `${open}\n${base}`);
+    }
+    return `${base}\n${source}`;
+}
+
 // 把生成结果锁在沙箱里，并记住以前做过的项目。
 // 用户层面：生成完能进修改页；下次打开还能从列表拿回那个项目继续改。
 function createWorkspace(options = {}) {
@@ -139,7 +181,63 @@ function createWorkspace(options = {}) {
             }
         }
 
-        return { name: sanitizeProjectName(rawName), dir, files: files.sort(), handoffs, job };
+        const name = sanitizeProjectName(rawName);
+        const hasPublicIndex = await fs.pathExists(path.join(dir, 'public', 'index.html'));
+        const hasRootIndex = await fs.pathExists(path.join(dir, 'index.html'));
+        const previewPath = (hasPublicIndex || hasRootIndex) ? `/preview/${encodeURIComponent(name)}/` : '';
+
+        return { name, dir, files: files.sort(), handoffs, job, previewPath };
+    }
+
+    // 只发出可在浏览器里打开的页面资源，不启动生成项目的后端。
+    // 用户层面：生成完能在修改页里看到页面长什么样，而不必先弹一个运行窗口。
+    async function resolvePreviewAsset(rawName, urlPath) {
+        const name = sanitizeProjectName(rawName);
+        const dir = resolveProjectDir(name);
+        if (!await fs.pathExists(dir)) {
+            throw previewError(`找不到项目「${name}」的预览`);
+        }
+
+        const publicDir = path.join(dir, 'public');
+        const webRoot = await fs.pathExists(publicDir) ? publicDir : dir;
+        let relative = String(urlPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+        if (!relative || relative.endsWith('/')) {
+            relative = `${relative}index.html`.replace(/^\//, '');
+        }
+
+        const segments = relative.split('/').filter(Boolean);
+        if (segments.some((part) => part === '..' || PREVIEW_BLOCKED_DIRS.has(part) || part.startsWith('.'))) {
+            throw previewError('这个文件不能预览');
+        }
+
+        const baseName = (segments[segments.length - 1] || '').toLowerCase();
+        if (PREVIEW_BLOCKED_FILES.has(baseName)) {
+            throw previewError('这个文件不能预览');
+        }
+
+        const ext = path.extname(baseName).toLowerCase();
+        const contentType = PREVIEW_TYPES[ext];
+        if (!contentType) {
+            throw previewError('这个文件不能预览');
+        }
+
+        const filePath = path.resolve(webRoot, ...segments);
+        if (!isInside(webRoot, filePath) || !isInside(dir, filePath)) {
+            throw previewError('这个文件不能预览');
+        }
+        if (!await fs.pathExists(filePath)) {
+            throw previewError('找不到预览文件');
+        }
+        const stat = await fs.stat(filePath);
+        if (!stat.isFile()) {
+            throw previewError('找不到预览文件');
+        }
+
+        return {
+            filePath,
+            contentType,
+            injectBase: ext === '.html'
+        };
     }
 
     // 每交一棒就把稿子写进项目，刷新后还能看见。
@@ -163,7 +261,9 @@ function createWorkspace(options = {}) {
         listProjects,
         ensureWritable,
         listProjectFiles,
-        saveProgress
+        saveProgress,
+        resolvePreviewAsset,
+        injectPreviewBase
     };
 }
 

@@ -257,6 +257,37 @@
             margin: 0;
         }
 
+        .workspace-stage {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .preview-pane {
+            border: 1px solid var(--line);
+            background: #0f2134;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-caption {
+            margin: 0;
+            padding: 8px 10px;
+            color: var(--muted);
+            font-size: 0.82rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .preview-pane iframe {
+            flex: 1;
+            width: 100%;
+            min-height: 360px;
+            border: 0;
+            background: #fff;
+        }
+
         .pulse {
             animation: pulse 1.4s ease-in-out infinite;
         }
@@ -436,7 +467,8 @@
             .workspace-bar,
             .edit-bar,
             .talk-grid,
-            .talk-compose {
+            .talk-compose,
+            .workspace-stage {
                 display: block;
             }
 
@@ -558,7 +590,13 @@
                 <button type="button" class="btn-ghost" id="workspaceCancelBtn" data-cancel-work hidden>停止这一轮</button>
             </div>
         </div>
-        <div class="plotter" id="workspaceLog"></div>
+        <div class="workspace-stage">
+            <div class="plotter" id="workspaceLog"></div>
+            <div class="preview-pane">
+                <p class="preview-caption" id="previewCaption">生成完成后会在这里预览页面。</p>
+                <iframe id="previewFrame" title="项目预览" sandbox="allow-scripts allow-forms allow-modals" hidden></iframe>
+            </div>
+        </div>
         <div class="edit-bar">
             <input type="text" id="patchMsg" placeholder="例如：加一个购物车，或把按钮改成绿色">
             <button type="button" class="btn-cyan" id="patchBtn">应用修改</button>

@@ -491,6 +491,23 @@ async function requestBrief() {
     }
 }
 
+// 在修改页加载生成结果的页面预览。
+// 用户层面：生成完不用先点运行，就能看见页面长什么样。
+function loadPreview(previewPath) {
+    const frame = document.getElementById('previewFrame');
+    const caption = document.getElementById('previewCaption');
+    if (!frame || !caption) return;
+    if (!previewPath) {
+        frame.hidden = true;
+        frame.removeAttribute('src');
+        caption.textContent = '这个项目还没有可预览的页面。';
+        return;
+    }
+    frame.hidden = false;
+    frame.src = `${previewPath}?t=${Date.now()}`;
+    caption.textContent = '页面预览。保存、列表等接口没有启动；要完整体验可点「在本机运行」。';
+}
+
 async function showWorkspace(projectName, { resetLog } = {}) {
     currentProjectName = projectName;
     workspaceTitle.textContent = `修改项目：${projectName}`;
@@ -518,8 +535,9 @@ async function showWorkspace(projectName, { resetLog } = {}) {
             bodyEl.textContent = '';
         }
         renderArtifactTabs(workspaceHandoffTabs, bodyEl);
+        loadPreview(data.previewPath, projectName);
         if (resetLog) {
-            appendLog(`已打开项目 [${projectName}]。在下方说出你想改的地方。修改也会先调研，再施工、审查。\n`);
+            appendLog(`已打开项目 [${projectName}]。右侧是页面预览；在下方说出你想改的地方。\n`);
             if (data.job && data.job.status && data.job.status !== 'done') {
                 appendLog('上次没有完整做完。已经写下的稿子还在，可以继续改。\n');
             }
@@ -587,7 +605,7 @@ async function runGeneration({ description, outputDir, logEl }) {
                 if (ready.ok) {
                     workspaceLog.innerHTML = logEl.innerHTML;
                     await showWorkspace(ready.name, { resetLog: false });
-                    appendLog('\n已经进入修改页。直接在下方说要改什么即可。\n');
+                    appendLog('\n已经进入修改页。右侧是页面预览，可以直接看生成结果。\n');
                 } else {
                     appendLog('\n这一轮没有做完。可以改总结后再确认，或返回工作台打开已写下的稿子。\n');
                     if (ready.name) await refreshProjects();
