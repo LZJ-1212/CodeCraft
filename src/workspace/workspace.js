@@ -24,6 +24,9 @@ function createWorkspace(options = {}) {
         if (name.includes('..') || name !== path.basename(name)) {
             throw new Error('请填写合法的项目文件夹名');
         }
+        if (/[<>:"/\\|?*\x00-\x1f]/.test(name)) {
+            throw new Error('请填写合法的项目文件夹名');
+        }
         return name;
     }
 
@@ -97,7 +100,7 @@ function createWorkspace(options = {}) {
         }
 
         const files = [];
-        const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build']);
+        const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.codecraft']);
 
         async function scan(current, relative = '') {
             const entries = await fs.readdir(current, { withFileTypes: true });
@@ -113,7 +116,44 @@ function createWorkspace(options = {}) {
         }
 
         await scan(dir);
-        return { name: sanitizeProjectName(rawName), dir, files: files.sort() };
+
+        let handoffs = [];
+        const handoffPath = path.join(dir, '.codecraft', 'handoffs.json');
+        if (await fs.pathExists(handoffPath)) {
+            try {
+                const parsed = await fs.readJson(handoffPath);
+                if (Array.isArray(parsed)) handoffs = parsed;
+            } catch {
+                handoffs = [];
+            }
+        }
+
+        let job = null;
+        const jobPath = path.join(dir, '.codecraft', 'job.json');
+        if (await fs.pathExists(jobPath)) {
+            try {
+                const parsed = await fs.readJson(jobPath);
+                if (parsed && typeof parsed === 'object') job = parsed;
+            } catch {
+                job = null;
+            }
+        }
+
+        return { name: sanitizeProjectName(rawName), dir, files: files.sort(), handoffs, job };
+    }
+
+    // 每交一棒就把稿子写进项目，刷新后还能看见。
+    // 用户层面：生成中途关掉页面，已经问完的调研和交互稿不会丢。
+    async function saveProgress(rawName, { handoffs, job } = {}) {
+        const dir = resolveProjectDir(rawName);
+        await fs.ensureDir(path.join(dir, '.codecraft'));
+        if (Array.isArray(handoffs)) {
+            await fs.outputJson(path.join(dir, '.codecraft', 'handoffs.json'), handoffs, { spaces: 2 });
+        }
+        if (job && typeof job === 'object') {
+            await fs.outputJson(path.join(dir, '.codecraft', 'job.json'), job, { spaces: 2 });
+        }
+        return dir;
     }
 
     return {
@@ -122,7 +162,8 @@ function createWorkspace(options = {}) {
         resolveProjectDir,
         listProjects,
         ensureWritable,
-        listProjectFiles
+        listProjectFiles,
+        saveProgress
     };
 }
 

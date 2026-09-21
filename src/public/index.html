@@ -296,10 +296,147 @@
             cursor: pointer;
         }
 
+        .crew {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .crew li {
+            padding: 0 12px 0 0;
+        }
+
+        .crew li:not(:last-child)::after {
+            content: "→";
+            margin-left: 12px;
+            color: var(--line);
+        }
+
+        .crew li.is-current {
+            color: var(--brass);
+            font-weight: 600;
+        }
+
+        .crew li.is-done {
+            color: var(--ok);
+        }
+
+        .talk-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+            min-height: calc(100vh - 140px);
+        }
+
+        .transcript {
+            min-height: 360px;
+            max-height: calc(100vh - 220px);
+            overflow: auto;
+            background: #0f2134;
+            border: 1px solid var(--line);
+            padding: 16px;
+        }
+
+        .bubble {
+            max-width: 36rem;
+            margin: 0 0 14px;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--line);
+        }
+
+        .bubble.liaison {
+            border-left: 3px solid var(--brass);
+            padding-left: 12px;
+        }
+
+        .bubble.client {
+            border-left: 3px solid var(--cyan);
+            padding-left: 12px;
+            margin-left: 24px;
+        }
+
+        .bubble strong {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .talk-compose {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .talk-compose input {
+            flex: 1;
+            margin: 0;
+        }
+
+        .brief-sheet {
+            white-space: pre-wrap;
+            line-height: 1.55;
+            min-height: 240px;
+            color: var(--ink);
+        }
+
+        .brief-sheet h2 {
+            font-family: "Source Serif 4", Georgia, serif;
+            font-size: 1.3rem;
+            margin: 0 0 10px;
+        }
+
+        .crew-step {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .handoff-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .handoff-tabs button {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--line);
+            padding: 6px 10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .handoff-tabs button.is-current {
+            color: var(--navy);
+            background: var(--cyan);
+            border-color: var(--cyan);
+        }
+
+        .brief-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .handoff-body a {
+            color: var(--cyan);
+        }
+
         @media (max-width: 860px) {
             .studio-grid,
             .workspace-bar,
-            .edit-bar {
+            .edit-bar,
+            .talk-grid,
+            .talk-compose {
                 display: block;
             }
 
@@ -324,14 +461,18 @@
         <header class="masthead">
             <div>
                 <h1 class="wordmark">CodeCraft</h1>
-                <p class="lede">用一句话描述应用。生成结束后会进入这个项目的修改页；以前做过的项目也可以从下面打开。</p>
+                <p class="lede">你先说想做什么。顾问问清细节，总结给你确认；然后去 GitHub 找可借鉴的 skill 和源码，再交给交互、技术、施工、审查、测试。</p>
             </div>
         </header>
+        <ol class="crew" aria-label="工作室分工" style="margin-bottom: 8px;"></ol>
+        <p class="crew-step" data-crew-step>顾问把甲方需求问清楚，再交给下一棒。</p>
         <div class="studio-grid">
             <div>
                 <form class="panel" id="generateForm">
-                    <label for="apiKey">DeepSeek API Key</label>
-                    <input type="password" id="apiKey" autocomplete="off" placeholder="sk-...">
+                    <div id="apiKeyField">
+                        <label for="apiKey">DeepSeek API Key</label>
+                        <input type="password" id="apiKey" autocomplete="off" placeholder="sk-...">
+                    </div>
 
                     <label for="description">想做什么</label>
                     <textarea id="description" placeholder="例如：带深色模式的待办清单"></textarea>
@@ -346,7 +487,7 @@
                     </select>
 
                     <label class="option"><input type="checkbox" id="install" checked> 自动安装依赖
-                        <small>生成后执行 npm install，方便马上运行</small>
+                        <small>生成后执行 npm install --ignore-scripts，只装包、不跑第三方安装脚本</small>
                     </label>
                     <label class="option"><input type="checkbox" id="test" checked> 自动编译检查
                         <small>若项目有 build 脚本，会试着编译并提示失败原因</small>
@@ -355,7 +496,9 @@
                         <small>只在你确实要重做同名项目时勾选</small>
                     </label>
 
-                    <button type="submit" class="btn-brass" id="generateBtn">开始生成</button>
+                    <button type="submit" class="btn-brass" id="startTalkBtn">找顾问谈谈</button>
+                    <button type="button" class="btn-ghost" id="generateBtn" style="width:100%; margin-top:8px;">需求很清楚，直接生成</button>
+                    <button type="button" class="btn-ghost" id="studioCancelBtn" data-cancel-work hidden style="width:100%; margin-top:8px;">停止这一轮</button>
                 </form>
                 <div class="panel projects" style="margin-top: 16px;">
                     <h2>以前的项目</h2>
@@ -363,7 +506,40 @@
                     <ul class="project-list" id="projectList"></ul>
                 </div>
             </div>
-            <div class="plotter" id="studioLog">等待需求。生成过程会写在这张图纸上。</div>
+            <div class="plotter" id="studioLog">确认总结之后，调研、交互、技术、施工、审查、测试的进度会写在这里。每人交出的稿子也可以点开看。</div>
+        </div>
+    </section>
+
+    <!-- 谈话台：顾问问细节，总结等人确认。用户层面：你当甲方把需求谈清楚，点头后才真正做项目。 -->
+    <section class="view" id="talk" hidden>
+        <div class="workspace-bar">
+            <div>
+                <h1 class="wordmark" style="font-size:1.5rem;">和顾问谈需求</h1>
+                <ol class="crew" id="talkCrew" aria-label="当前角色" style="margin-top:8px;"></ol>
+                <p class="crew-step" data-crew-step>顾问正在读你的需求。</p>
+            </div>
+            <div class="bar-actions">
+                <button type="button" class="btn-ghost" id="talkBackBtn">返回工作台</button>
+                <button type="button" class="btn-ghost" id="talkCancelBtn" data-cancel-work hidden>停止这一轮</button>
+            </div>
+        </div>
+        <div class="talk-grid">
+            <div>
+                <div class="transcript" id="transcript"></div>
+                <form class="talk-compose" id="talkForm">
+                    <input type="text" id="talkMsg" placeholder="回答顾问的问题，或补充你在意的细节">
+                    <button type="submit" class="btn-cyan" id="talkSendBtn">发送</button>
+                </form>
+            </div>
+            <div class="panel">
+                <div class="handoff-tabs" id="handoffTabs"></div>
+                <div class="brief-sheet" id="briefSheet">谈话进行中。问清之后会在这里写出需求总结，你确认后才交给交互和技术。</div>
+                <div class="brief-actions">
+                    <button type="button" class="btn-ghost" id="requestBriefBtn" disabled>请先出一份总结</button>
+                    <button type="button" class="btn-brass" id="confirmBriefBtn" hidden>确认总结，开始做</button>
+                </div>
+                <div class="plotter" id="talkLog" hidden style="margin-top:12px; min-height:220px;"></div>
+            </div>
         </div>
     </section>
 
@@ -373,10 +549,13 @@
             <div>
                 <h1 id="workspaceTitle">修改项目</h1>
                 <p class="files" id="workspaceFiles"></p>
+                <div class="handoff-tabs" id="workspaceHandoffTabs"></div>
+                <p class="files" id="workspaceHandoffBody"></p>
             </div>
             <div class="bar-actions">
                 <button type="button" class="btn-ghost" id="backBtn">返回工作台</button>
                 <button type="button" class="btn-cyan" id="runBtn">在本机运行</button>
+                <button type="button" class="btn-ghost" id="workspaceCancelBtn" data-cancel-work hidden>停止这一轮</button>
             </div>
         </div>
         <div class="plotter" id="workspaceLog"></div>

@@ -66,7 +66,7 @@ echo [System] Keep this terminal open. The system will be available in your brow
 echo.
 
 :: [新增核心修復] 在啟動 Node.js 前，自動呼叫 Windows 預設瀏覽器打開網頁
-start http://localhost:8080
+start http://127.0.0.1:8080
 
 :: Standardized entry point for the Web GUI
 node src/server.js

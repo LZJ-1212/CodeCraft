@@ -4,6 +4,8 @@ const fs = require('fs-extra');
 const FileService = require('./fileService');
 const { chatCompletion } = require('../llm/deepseekClient');
 const { extractJsonObject, extractGeneratedFile, parseBlueprint } = require('../llm/extract');
+const { encodeStage } = require('../protocol/streamEvents');
+const { isSafeNpmScript } = require('../pipeline/packageGuard');
 
 // 告诉模型用哪种界面语言写生成出来的项目。
 // 用户层面：选中文就得到中文按钮和提示，选英文则整站是英文。
@@ -41,8 +43,8 @@ class AIService {
 
     // 阶段 1：根据需求列出要生成的文件和职责。
     // 用户层面：先看到项目会长成什么样，再逐个写出能打开的源文件。
-    static async callArchitect(description, apiKey, lang, logger = null) {
-        const logMsg = `\x1b[35m👑 [Architect Agent] Analyzing requirements and designing blueprint...\x1b[0m`;
+    static async callArchitect(description, apiKey, lang, logger = null, signal = null) {
+        const logMsg = `\x1b[35m🎨 [设计师] 按确认过的需求拆文件清单...\x1b[0m`;
         if (logger) logger(`${logMsg}\n`);
         else console.log(logMsg);
 
@@ -57,15 +59,17 @@ CRITICAL Requirements:
 6. ONLY output a pure JSON object where keys are file paths and values are comprehensive duty descriptions.
 7. NO BINARY FILES: Do NOT generate .jpg, .png, or .ico files. Images must be loaded via URL.
 8. NO Markdown tags. NO empty directories.
-9. ${getLangInstruction(lang)}`;
+9. If the prompt includes a GitHub reference list, learn architecture and UX patterns from it. Do NOT copy source files verbatim.
+10. ${getLangInstruction(lang)}`;
 
         const content = await chatCompletion({
             apiKey,
             json: true,
             logger,
+            signal,
             messages: [
                 { role: 'system', content: architectPrompt },
-                { role: 'user', content: description }
+                { role: 'user', content: `Confirmed client brief:\n${description}` }
             ]
         });
         return parseBlueprint(content);
@@ -76,6 +80,8 @@ CRITICAL Requirements:
     static async executeGenerationPipeline(targetDir, blueprint, description, apiKey, lang, logger = null, options = {}) {
         const install = options.install !== false;
         const test = options.test !== false;
+        const throwIfAborted = options.throwIfAborted || (() => {});
+        const signal = options.signal || null;
 
         const log = (msg, exactOutput = false) => {
             const formattedMsg = exactOutput ? msg : `${msg}\n`;
@@ -85,7 +91,7 @@ CRITICAL Requirements:
         };
 
         const fileNames = Object.keys(blueprint);
-        log(`\n\x1b[36m👷 [Coder Agent] Blueprint received. Writing ${fileNames.length} files...\x1b[0m\n`);
+        log(`\n\x1b[36m🔨 [施工] 蓝图已定。开始写 ${fileNames.length} 个文件...\x1b[0m\n`);
 
         await fs.ensureDir(targetDir);
 
@@ -105,6 +111,7 @@ CRITICAL Requirements:
         const dynamicMemory = {};
 
         for (const [filePath, fileRole] of Object.entries(blueprint)) {
+            throwIfAborted();
             log(`⏳ (${count}/${fileNames.length}) Crafting ${filePath} ... `, true);
             try {
                 let combinedContext = existingContext || '';
@@ -112,20 +119,22 @@ CRITICAL Requirements:
                     combinedContext += `\n\n[CRITICAL MEMORY: FILES JUST GENERATED IN THIS SESSION]\n${JSON.stringify(dynamicMemory, null, 2)}`;
                 }
 
-                const code = await this._callCoder(filePath, fileRole, blueprint, description, apiKey, lang, combinedContext, logger);
+                const code = await this._callCoder(filePath, fileRole, blueprint, description, apiKey, lang, combinedContext, logger, signal);
                 await FileService.writeGeneratedFiles(targetDir, { [filePath]: code });
                 dynamicMemory[filePath] = this._extractCodeSkeleton(code);
                 log('\x1b[32m✅ Done\x1b[0m');
             } catch (err) {
+                if (err && err.code === 'ABORTED') throw err;
                 log(`\x1b[31m❌ Failed: ${err.message}\x1b[0m`);
             }
             count += 1;
         }
 
+        throwIfAborted();
         if (install) {
-            log('\n📦 [System] Installing dependencies (npm install)...');
+            log('\n📦 [System] Installing dependencies (npm install --ignore-scripts)...');
             try {
-                await FileService.runCommand('npm', ['install'], targetDir);
+                await FileService.runCommand('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], targetDir);
             } catch (installErr) {
                 log('\x1b[31m❌ [System] npm install failed: Dependency compilation error.\x1b[0m');
                 const isZh = lang === 'zh';
@@ -148,14 +157,17 @@ CRITICAL Requirements:
 
         if (await fs.pathExists(pkgPath)) {
             const pkg = await fs.readJson(pkgPath);
-            if (pkg.scripts && pkg.scripts.build) needsBuild = true;
-            if (pkg.scripts && pkg.scripts.start) startCommand = 'npm start';
+            if (pkg.scripts && isSafeNpmScript(pkg.scripts.build)) needsBuild = true;
+            if (pkg.scripts && isSafeNpmScript(pkg.scripts.start) && /^node\s+/i.test(pkg.scripts.start.trim())) {
+                startCommand = pkg.scripts.start.trim();
+            }
         }
 
         let testPassed = true;
 
         if (test && needsBuild) {
-            log('\n🧪 [System] Build script detected. Running compilation tests...');
+            log('\n🧪 [测试] 发现 build 脚本，开始编译检查...');
+            if (logger) logger(encodeStage({ id: 'test', label: '测试' }));
             testPassed = false;
             for (let attempt = 1; attempt <= 2; attempt += 1) {
                 try {
@@ -236,7 +248,7 @@ CRITICAL Requirements:
 
     // 按蓝图为单个文件写出完整代码。
     // 用户层面：描述里的页面、接口会变成可以打开的源文件，而不是空目录。
-    static async _callCoder(filePath, fileRole, blueprint, description, apiKey, lang, rawMemory = '', logger = null) {
+    static async _callCoder(filePath, fileRole, blueprint, description, apiKey, lang, rawMemory = '', logger = null, signal = null) {
         let formattedMemoryPrompt = '';
         if (rawMemory && rawMemory.length > 5) {
             formattedMemoryPrompt = `\n[CRITICAL MEMORY: PROJECT AST SKELETON]\nHere is the structural skeleton of the files generated so far:\n${rawMemory}\nRULE: You MUST integrate your new code seamlessly with this existing architecture. Use EXACT function names, API routes, and DOM IDs.`;
@@ -266,11 +278,13 @@ CRITICAL QUALITY RULES:
 (Your 100% complete, working code here. No omissions.)
 \`\`\`
 8. ${getLangInstruction(lang)}
+9. If the project context includes a GitHub reference list, learn patterns from it. Do not paste third-party source files into the output.
 ${formattedMemoryPrompt}`;
 
         const content = await chatCompletion({
             apiKey,
             logger,
+            signal,
             messages: [
                 { role: 'system', content: coderPrompt },
                 { role: 'user', content: `Execute CoT protocol and output code for ${filePath}` }
@@ -289,7 +303,7 @@ ${formattedMemoryPrompt}`;
 
     // 按用户的一句话补丁改已有项目。
     // 用户层面：在修改页里说「加一个购物车」，对应文件会被改掉，不必从头再生成。
-    static async applyQAPatch(projectDir, message, apiKey, logger = null) {
+    static async applyQAPatch(projectDir, message, apiKey, logger = null, signal = null) {
         const log = (msg) => {
             if (logger) logger(`${msg}\n`);
             else console.log(msg);
@@ -327,6 +341,7 @@ NO markdown code blocks inside the <patch> tag.
         const content = await chatCompletion({
             apiKey,
             logger,
+            signal,
             messages: [
                 { role: 'system', content: qaPrompt },
                 { role: 'user', content: 'Execute QA Protocol and provide the patch.' }

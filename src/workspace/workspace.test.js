@@ -32,6 +32,7 @@ describe('workspace', () => {
         expect(() => workspace.resolveProjectDir('../secret')).toThrow(/合法/);
         expect(() => workspace.resolveProjectDir('a/b')).toThrow(/合法/);
         expect(() => workspace.resolveProjectDir('')).toThrow(/合法/);
+        expect(() => workspace.resolveProjectDir('"><img>')).toThrow(/合法/);
     });
 
     it('新项目默认落在 generated 目录里', () => {
@@ -59,5 +60,26 @@ describe('workspace', () => {
 
     it('打开不存在的项目时明确告诉用户找不到', async () => {
         await expect(workspace.listProjectFiles('missing-app')).rejects.toThrow(/找不到/);
+    });
+
+    it('打开项目时能读到上次留下的交接稿', async () => {
+        const dir = path.join(root, 'generated', 'shop');
+        await fs.outputFile(path.join(dir, 'package.json'), '{}');
+        await fs.outputJson(path.join(dir, '.codecraft', 'handoffs.json'), [
+            { id: 'ux', title: '交互稿', body: '列表页' }
+        ]);
+        const details = await workspace.listProjectFiles('shop');
+        expect(details.handoffs).toEqual([{ id: 'ux', title: '交互稿', body: '列表页' }]);
+    });
+
+    it('生成中途也能把交接稿写进项目', async () => {
+        await fs.outputFile(path.join(root, 'generated', 'shop', 'package.json'), '{}');
+        await workspace.saveProgress('shop', {
+            handoffs: [{ id: 'research', title: '参考清单', body: 'https://github.com/org/todo' }],
+            job: { status: 'running', stage: 'research' }
+        });
+        const details = await workspace.listProjectFiles('shop');
+        expect(details.handoffs[0].id).toBe('research');
+        expect(details.job.status).toBe('running');
     });
 });

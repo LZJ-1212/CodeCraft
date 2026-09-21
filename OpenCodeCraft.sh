@@ -48,9 +48,9 @@ fi
 echo "[System] Booting up CodeCraft..."
 # Mac 使用 open, Linux 使用 xdg-open 來啟動瀏覽器
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    open http://localhost:8080
+    open http://127.0.0.1:8080
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    xdg-open http://localhost:8080
+    xdg-open http://127.0.0.1:8080
 fi
 
 node src/server.js

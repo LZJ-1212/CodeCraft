@@ -1,5 +1,7 @@
 const axios = require('axios');
 
+const { isAbortError, asAbortError } = require('../jobs/abortGate');
+
 // 调用 DeepSeek V4 Pro，并在失败时自动重试。
 // 用户层面：生成和修改都走当前可用的 Pro 模型，网络抖一下也不必重新点按钮。
 
@@ -15,6 +17,7 @@ async function callWithRetry(apiFunc, maxRetries = 3, logger = null) {
         try {
             return await apiFunc();
         } catch (error) {
+            if (isAbortError(error)) throw asAbortError();
             const isLastAttempt = i === maxRetries - 1;
             const status = error.response ? error.response.status : 'Network/Unknown';
             const msg = `\x1b[33m⚠️ API Interruption (${status}): ${error.message}. Retrying in ${Math.pow(2, i)}s... (Attempt ${i + 1}/${maxRetries})\x1b[0m`;
@@ -38,11 +41,13 @@ async function chatCompletion({
     messages,
     json = false,
     maxTokens = 16384,
-    logger = null
+    logger = null,
+    signal = null
 }) {
     if (!apiKey) {
         throw new Error('请填写 DeepSeek API Key');
     }
+    if (signal && signal.aborted) throw asAbortError();
 
     const body = {
         model: DEFAULT_MODEL,
@@ -58,7 +63,8 @@ async function chatCompletion({
     const response = await callWithRetry(
         () => axios.post(DEEPSEEK_URL, body, {
             headers: { Authorization: `Bearer ${apiKey}` },
-            timeout: 120000
+            timeout: 120000,
+            signal
         }),
         3,
         logger

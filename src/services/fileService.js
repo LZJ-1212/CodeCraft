@@ -1,25 +1,21 @@
 const fs = require('fs-extra');
 const path = require('path');
 const { spawn } = require('child_process');
-// [核心修復] 匯入我們剛剛全新重構的 ASTProcessor 類別
 const ASTProcessor = require('../core/ast');
+const { sanitizePackageJsonText } = require('../pipeline/packageGuard');
 
-/**
- * FileService: 基礎設施與檔案安全服務 (Infrastructure & Security Service)
- * [Why] 遵守單一職責原則 (SRP)，將所有與底層作業系統的互動 (檔案 I/O, 進程調用) 集中管理。
- * [How] 提供統一的非同步 API，並在所有寫入操作前強制執行 Path Traversal 安全過濾。
- */
 class FileService {
-    /**
-     * 執行外部命令 (Process Spawning)
-     */
+    // 在项目目录里跑本机命令，不用系统 shell 拼接。
+    // 用户层面：安装依赖时只会执行我们列出的 npm 参数，不会把整段命令丢给 cmd。
     static async runCommand(cmd, args, cwd) {
+        const bin = cmd === 'npm' && process.platform === 'win32' ? 'npm.cmd' : cmd;
         return new Promise((resolve, reject) => {
-            const proc = spawn(cmd, args, { cwd, stdio: 'pipe', shell: true });
+            const proc = spawn(bin, args, { cwd, stdio: 'pipe', shell: false, windowsHide: true });
             let errorOutput = '';
 
             proc.stderr.on('data', (data) => { errorOutput += data.toString(); });
-            proc.on('close', code => {
+            proc.on('error', (error) => reject(error));
+            proc.on('close', (code) => {
                 if (code === 0) resolve(true);
                 else reject(new Error(`Execution failed (Code ${code})\n${errorOutput}`));
             });
@@ -57,7 +53,12 @@ class FileService {
                 continue;
             }
             const fullPath = path.join(targetDir, filePath);
-            await fs.outputFile(fullPath, content, 'utf8');
+            // 生成出来的 package.json 会先去掉安装钩子。
+            // 用户层面：即使模型被诱导写了 postinstall，勾选安装时也不会在你电脑上执行它。
+            const safeContent = path.basename(filePath) === 'package.json'
+                ? sanitizePackageJsonText(content)
+                : content;
+            await fs.outputFile(fullPath, safeContent, 'utf8');
         }
     }
 
@@ -66,7 +67,7 @@ class FileService {
      */
     static async readProjectFiles(targetDir) {
         const filesMap = {};
-        const ignoreDirs = ['node_modules', '.git', 'dist', 'build', 'public', 'assets'];
+        const ignoreDirs = ['node_modules', '.git', 'dist', 'build', 'public', 'assets', '.codecraft'];
         const ignoreFiles = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
         const allowedExts = ['.js', '.jsx', '.ts', '.tsx', '.vue', '.html', '.css', '.json', '.md'];
 
@@ -135,7 +136,9 @@ class FileService {
                     finalContent = validatedCode; // 使用排版後且保證安全的代碼
                 }
 
-                await fs.outputFile(absPath, finalContent, 'utf8');
+                await fs.outputFile(absPath, path.basename(filePath) === 'package.json'
+                    ? sanitizePackageJsonText(finalContent)
+                    : finalContent, 'utf8');
                 console.log(`  📝 Updated: ${filePath}`);
             }
         }
